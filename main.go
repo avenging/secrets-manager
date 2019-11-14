@@ -42,6 +42,7 @@ func main() {
 	var selectedBackend string
 	var watchNamespaces string
 	var excludeNamespaces string
+	var singleNamespace string
 
 	backendCfg := backend.Config{}
 
@@ -60,6 +61,7 @@ func main() {
 	flag.DurationVar(&backendCfg.VaultTokenPollingPeriod, "vault.token-polling-period", 15*time.Second, "Polling interval to check token expiration time.")
 	flag.IntVar(&backendCfg.VaultRenewTTLIncrement, "vault.renew-ttl-increment", 600, "TTL time for renewed token.")
 	flag.StringVar(&backendCfg.VaultEngine, "vault.engine", "kv2", "Vault secret engine. Only KV version 1 and 2 supported")
+	flag.StringVar(&singleNamespace, "single-namespace", "", "Name of a single Namespace to monitor. Means watch/exclude-namspaces is ignored")
 	flag.StringVar(&watchNamespaces, "watch-namespaces", "", "Comma separated list of namespaces that secrets-manager will watch for SecretDefinitions. By default all namespaces are watched.")
 	flag.StringVar(&excludeNamespaces, "exclude-namespaces", "", "Comma separated list of namespaces that secrets-manager will not watch for SecretDefinitions. By default all namespaces are watched.")
 	flag.Parse()
@@ -94,11 +96,17 @@ func main() {
 
 	ctrl.SetLogger(zap.Logger(enableDebugLog))
 
+	if len(singleNamespace) > 0 {
+		logger.Info("Managing single namespace: " + singleNamespace)
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
+		Namespace:          singleNamespace,
 	})
+
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -110,14 +118,17 @@ func main() {
 	}
 
 	watchNs := make(map[string]bool)
-	if len(watchNamespaces) > 0 {
-		for _, ns := range nsSlice(watchNamespaces) {
-			watchNs[ns] = true
+	// Ignore namespace settings if singleNamespace has been set
+	if !(len(singleNamespace) > 0) {
+		if len(watchNamespaces) > 0 {
+			for _, ns := range nsSlice(watchNamespaces) {
+				watchNs[ns] = true
+			}
 		}
-	}
-	if len(excludeNamespaces) > 0 {
-		for _, ns := range nsSlice(excludeNamespaces) {
-			watchNs[ns] = false
+		if len(excludeNamespaces) > 0 {
+			for _, ns := range nsSlice(excludeNamespaces) {
+				watchNs[ns] = false
+			}
 		}
 	}
 

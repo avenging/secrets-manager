@@ -90,6 +90,7 @@ To deploy it just run `kubectl apply -f secretdefinition-sample.yaml`
 | `vault.token-polling-period` | 15s | Polling interval to check token expiration time. |
 | `vault.renew-ttl-increment` | 600 | TTL time for renewed token. |
 | `metrics-addr` | `:8080` | The address to listen on for HTTP requests. |
+| `single-namespace` | `""` | A single namespace to monitor. Setting this will mean that secrets-manager does not seen a Cluster Role to read all secret definitions and a standard Namespace Role will suffice. This namespace has to be the same namespace that secrets-manager is deployed into. |
 | `watch-namespaces` | `""` | Comma separated list of namespaces that secrets-manager will watch for `SecretDefinitions`. By default all namespaces are watched. |
 | `exclude-namespaces` | `""` | Comma separated list of namespaces that secrets-manager will not watch for `SecretDefinitions`. By default all namespaces are watched. Note that if you exclude and watch the same namespace, excluding it will be prioritized. |
 
